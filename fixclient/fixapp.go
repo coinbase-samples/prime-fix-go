@@ -23,6 +23,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"prime-fix-go/builder"
@@ -45,6 +46,8 @@ type FixApp struct {
 
 	SessionId quickfix.SessionID
 	orders    map[string]model.OrderInfo
+
+	mu sync.RWMutex
 }
 
 func NewFixApp(
@@ -88,14 +91,17 @@ func (a *FixApp) OnLogon(sid quickfix.SessionID) {
 }
 
 func (a *FixApp) ToAdmin(msg *quickfix.Message, _ quickfix.SessionID) {
-	if t, _ := msg.Header.GetString(constants.TagMsgType); t == "A" {
+	if t, _ := msg.Header.GetString(constants.TagMsgType); t == constants.MsgTypeLogon {
 		ts := time.Now().UTC().Format(constants.FixTimeFormat)
-		sig := utils.Sign(ts, "A", "1", a.ApiKey, a.TargetCompId, a.Passphrase, a.ApiSecret)
-		msg.Body.SetField(constants.TagAccount, quickfix.FIXString(a.PortfolioId))
-		msg.Body.SetField(constants.TagHmac, quickfix.FIXString(sig))
-		msg.Body.SetField(constants.TagPassword, quickfix.FIXString(a.Passphrase))
-		msg.Body.SetField(constants.TagDropCopyFlag, quickfix.FIXString("Y"))
-		msg.Body.SetField(constants.TagAccessKey, quickfix.FIXString(a.ApiKey))
+		builder.BuildLogon(
+			&msg.Body,
+			ts,
+			a.ApiKey,
+			a.ApiSecret,
+			a.Passphrase,
+			a.TargetCompId,
+			a.PortfolioId,
+		)
 	}
 }
 
@@ -121,6 +127,9 @@ func (a *FixApp) handleExecReport(msg *quickfix.Message) {
 	if info.ClOrdId == "" {
 		return
 	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	existing, exists := a.orders[info.ClOrdId]
 	if !exists || (existing.OrderId == "" && info.OrderId != "") {
@@ -153,80 +162,16 @@ func Repl(app *FixApp) {
 		}
 		cmd := strings.ToLower(parts[0])
 		switch cmd {
-
 		case "new":
-			if len(parts) < 5 {
-				fmt.Println("usage: new <symbol> <MARKET|LIMIT> <BUY|SELL> <qty> [price]")
-				continue
-			}
-			msg := builder.BuildNew(
-				parts[1],                    // symbol
-				parts[2],                    // ordType
-				parts[3],                    // side
-				parts[4],                    // qty
-				utils.GetOptional(parts, 5), // price (optional)
-				app.PortfolioId,
-			)
-			quickfix.SendToTarget(msg, app.SessionId)
-
+			app.handleNew(parts)
 		case "status":
-			if len(parts) < 2 {
-				fmt.Println("usage: status <ClOrdId> [OrderId] [Side] [Symbol]")
-				continue
-			}
-			cl := parts[1]
-			var ord, side, sym string
-			if len(parts) > 2 {
-				ord = parts[2]
-			}
-			if len(parts) > 3 {
-				side = parts[3]
-			}
-			if len(parts) > 4 {
-				sym = parts[4]
-			}
-			if cached, ok := app.orders[cl]; ok {
-				if ord == "" {
-					ord = cached.OrderId
-				}
-				if side == "" {
-					side = cached.Side
-				}
-				if sym == "" {
-					sym = cached.Symbol
-				}
-			}
-			if ord == "" || side == "" || sym == "" {
-				fmt.Println("need OrderId, Side, and Symbol (not cached)")
-				continue
-			}
-			quickfix.SendToTarget(builder.BuildStatus(cl, ord, side, sym), app.SessionId)
-
+			app.handleStatus(parts)
 		case "cancel":
-			if len(parts) < 2 {
-				fmt.Println("usage: cancel <ClOrdId>")
-				continue
-			}
-			info, ok := app.orders[parts[1]]
-			if !ok {
-				fmt.Println("unknown ClOrdId (not in cache)")
-				continue
-			}
-			quickfix.SendToTarget(builder.BuildCancel(info, app.PortfolioId), app.SessionId)
-
+			app.handleCancel(parts)
 		case "list":
-			if len(app.orders) == 0 {
-				fmt.Println("(no cached orders)")
-				continue
-			}
-			for _, o := range app.orders {
-				fmt.Printf("%-20s → %s (%s %s %s)\n",
-					o.ClOrdId, o.OrderId, o.Side, o.Symbol, o.Quantity)
-			}
-
+			app.handleList()
 		case "exit":
 			return
-
 		default:
 			fmt.Println("unknown command")
 		}

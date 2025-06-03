@@ -19,6 +19,7 @@ package builder
 import (
 	"fmt"
 	"os"
+	"prime-fix-go/utils"
 	"strings"
 	"time"
 
@@ -33,7 +34,7 @@ func BuildNew(
 ) *quickfix.Message {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeNew))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNTID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
 	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
@@ -66,7 +67,7 @@ func BuildNew(
 func BuildStatus(clId, ordId, side, symbol string) *quickfix.Message {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeStatus))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNTID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
 	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
@@ -80,7 +81,7 @@ func BuildStatus(clId, ordId, side, symbol string) *quickfix.Message {
 func BuildCancel(info model.OrderInfo, portfolio string) *quickfix.Message {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeCancel))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNTID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
 	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
@@ -93,4 +94,17 @@ func BuildCancel(info model.OrderInfo, portfolio string) *quickfix.Message {
 	m.Body.SetField(constants.TagSide, quickfix.FIXString(info.Side))
 	m.Body.SetField(constants.TagSymbol, quickfix.FIXString(info.Symbol))
 	return m
+}
+
+func BuildLogon(
+	body *quickfix.Body,
+	ts, apiKey, apiSecret, passphrase, targetCompId, portfolioId string,
+) {
+	sig := utils.Sign(ts, "A", "1", apiKey, targetCompId, passphrase, apiSecret)
+
+	body.SetField(constants.TagAccount, quickfix.FIXString(portfolioId))
+	body.SetField(constants.TagHmac, quickfix.FIXString(sig))
+	body.SetField(constants.TagPassword, quickfix.FIXString(passphrase))
+	body.SetField(constants.TagDropCopyFlag, quickfix.FIXString("Y"))
+	body.SetField(constants.TagAccessKey, quickfix.FIXString(apiKey))
 }

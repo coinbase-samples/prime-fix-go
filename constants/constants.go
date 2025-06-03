@@ -22,6 +22,7 @@ const (
 	MsgTypeNew    = "D" // New Order
 	MsgTypeStatus = "H" // Status
 	MsgTypeCancel = "F" // Cancel
+	MsgTypeLogon  = "A" // Logon
 
 	FixTimeFormat = "20060102-15:04:05.000"
 

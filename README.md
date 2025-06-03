@@ -10,30 +10,18 @@ Under the hood, [QuickFIX/Go](https://github.com/quickfixgo/quickfix) is used to
 
 ## Prerequisites
 - **Go 1.20+** installed (https://golang.org/dl/)
-- **stunnel (v5.74+)** installed
+- **stunnel (v5.74+)** installed (see https://www.stunnel.org/downloads.html or install via Homebrew: `brew install stunnel`)
 - A valid **Coinbase Prime service account certificate** (PEM format) with private key
 
 ---
 
 ## 1. Configure & Run stunnel
 
-Coinbase Prime requires an SSL/TLS tunnel on `localhost:4198` that forwards to `fix.prime.coinbase.com:4198`. Below is an example `resources/stunnel.conf`:
+Coinbase Prime requires a TLS tunnel on `localhost:4198` that forwards to `fix.prime.coinbase.com:4198`.
 
-```ini
-foreground = yes
-debug      = info
+A sample configuration is included in this repo at `resources/stunnel.conf`. You can use it as-is or modify it as needed.
 
-[Coinbase]
-client   = yes
-accept   = 127.0.0.1:4198
-connect  = fix.prime.coinbase.com:4198
-
-; Verify mode 4 = verify peer cert chain and host name
-verify  = 4
-CAfile  = resources/fix-prime.coinbase.com.pem
-```
-
-Download Prime’s TLS certificate into `resources/fix-prime.coinbase.com.pem`:
+To install Prime’s TLS certificate into `/resources`:
 
 ```bash
 mkdir -p resources
@@ -41,7 +29,7 @@ openssl s_client -showcerts -connect fix.prime.coinbase.com:4198 < /dev/null \
   | openssl x509 -outform PEM > resources/fix-prime.coinbase.com.pem
 ```
 
-Start stunnel:
+Then start stunnel:
 
 ```bash
 stunnel resources/stunnel.conf
@@ -49,7 +37,11 @@ stunnel resources/stunnel.conf
 
 ## 2. Configure `fix.cfg`
 
-Edit `fix.cfg` at the project root. Make sure to replace `YOUR_SERVICE_ACCOUNT_ID` with your actual Coinbase service account ID.
+Edit `fix.cfg` at the project root. Update the `[SESSION]` block to include your actual service account ID under `SenderCompID`. Example:
+
+```bash
+SenderCompID=YOUR_SERVICE_ACCOUNT_ID
+```
 
 ## 3. API credentials
 
@@ -61,7 +53,7 @@ export SIGNING_KEY="your_api_secret_key"
 export PASSPHRASE="your_api_passphrase"
 export TARGET_COMP_ID="COIN"
 export PORTFOLIO_ID="your_portfolio_id"
-export SVC_ACCOUNTID="your_service_account_id"
+export SVC_ACCOUNT_ID="your_service_account_id"
 ```
 
 ## 4. Build & Run the Go FIX Client

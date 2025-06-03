@@ -36,7 +36,7 @@ func main() {
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SIGNING_KEY"),
 		os.Getenv("PASSPHRASE"),
-		os.Getenv("SVC_ACCOUNTID"),
+		os.Getenv("SVC_ACCOUNT_ID"),
 		os.Getenv("TARGET_COMP_ID"),
 		os.Getenv("PORTFOLIO_ID"),
 	)
