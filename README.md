@@ -48,12 +48,6 @@ export SVC_ACCOUNT_ID="your_service_account_id"
 
 ## 4. Build & Run the Go FIX Client
 
-Ensure dependencies:
-
-```bash
-go mod tidy
-```
-
 Run the client:
 ```bash
 go run cmd/main.go
@@ -82,7 +76,7 @@ Example (Limit Buy 0.1 BTC at $30000):
 FIX> new BTC-USD LIMIT BUY 0.1 30000
 ```
 
-The order is sent, and the ExecReport (fill/cancel information) will be cached in `orders.json`.
+The order is sent, and the ExecReport (fill/cancel information) will be stored in `orders.json`.
 
 ### Look Up an Existing Order
 
@@ -90,7 +84,7 @@ The order is sent, and the ExecReport (fill/cancel information) will be cached i
 FIX> status <ClOrdId> [OrderId] [Side] [Symbol]
 ```
 
-This application automatically generates a unique `ClOrdId` using `UnixNano`. This value can be collected from `orders.json`. `OrderId`, `Side`, and `Symbol` are required, however this app will automatically import these to the request based on the provided `ClOrdId`. 
+This application automatically generates a unique `ClOrdId` (Client Order ID) using `UnixNano`. This value can be collected from `orders.json`, or from FIX responses sent by the server. `OrderId`, `Side`, and `Symbol` are required, however this app will automatically import these to the request based on the provided `ClOrdId`. 
 
 Example:
 
@@ -113,4 +107,4 @@ This request looks up an order by `ClOrdId` and attempts to cancel it.
 FIX> list
 ```
 
-This command lists out all cached orders from `orders.json`. 
+This command lists out all stored orders from `orders.json`. 

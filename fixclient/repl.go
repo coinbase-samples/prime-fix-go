@@ -21,6 +21,8 @@ import (
 	"github.com/quickfixgo/quickfix"
 	"prime-fix-go/builder"
 	"prime-fix-go/utils"
+	"strconv"
+	"strings"
 )
 
 func (a *FixApp) handleNew(parts []string) {
@@ -28,14 +30,35 @@ func (a *FixApp) handleNew(parts []string) {
 		fmt.Println("usage: new <symbol> <MARKET|LIMIT> <BUY|SELL> <qty> [price]")
 		return
 	}
-	msg := builder.BuildNew(
-		parts[1],                    // symbol
-		parts[2],                    // ordType
-		parts[3],                    // side
-		parts[4],                    // qty
-		utils.GetOptional(parts, 5), // price (optional)
-		a.PortfolioId,
-	)
+
+	symbol := parts[1]
+	ordType := strings.ToUpper(parts[2])
+	side := strings.ToUpper(parts[3])
+	qty := parts[4]
+	price := utils.GetOptional(parts, 5)
+
+	if side != "BUY" && side != "SELL" {
+		fmt.Println("error: side must be BUY or SELL")
+		return
+	}
+
+	if _, err := strconv.ParseFloat(qty, 64); err != nil {
+		fmt.Println("error: qty must be a valid number")
+		return
+	}
+
+	if ordType == "LIMIT" {
+		if price == "" {
+			fmt.Println("error: price must be specified for LIMIT orders")
+			return
+		}
+		if _, err := strconv.ParseFloat(price, 64); err != nil {
+			fmt.Println("error: price must be a valid number")
+			return
+		}
+	}
+
+	msg := builder.BuildNew(symbol, ordType, side, qty, price, a.PortfolioId)
 	quickfix.SendToTarget(msg, a.SessionId)
 }
 
