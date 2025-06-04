@@ -20,13 +20,13 @@ import (
 	"fmt"
 	"github.com/quickfixgo/quickfix"
 	"prime-fix-go/builder"
-	"prime-fix-go/utils"
 	"strconv"
 	"strings"
 )
 
 func (a *FixApp) handleNew(parts []string) {
 	if len(parts) < 5 {
+		fmt.Println("error: insufficient arguments")
 		fmt.Println("usage: new <symbol> <MARKET|LIMIT> <BUY|SELL> <qty> [price]")
 		return
 	}
@@ -35,7 +35,7 @@ func (a *FixApp) handleNew(parts []string) {
 	ordType := strings.ToUpper(parts[2])
 	side := strings.ToUpper(parts[3])
 	qty := parts[4]
-	price := utils.GetOptional(parts, 5)
+	var price string
 
 	if side != "BUY" && side != "SELL" {
 		fmt.Println("error: side must be BUY or SELL")
@@ -47,15 +47,25 @@ func (a *FixApp) handleNew(parts []string) {
 		return
 	}
 
-	if ordType == "LIMIT" {
-		if price == "" {
+	switch ordType {
+	case "MARKET":
+		if len(parts) > 5 {
+			fmt.Println("error: MARKET orders should not include a price")
+			return
+		}
+	case "LIMIT":
+		if len(parts) < 6 {
 			fmt.Println("error: price must be specified for LIMIT orders")
 			return
 		}
+		price = parts[5]
 		if _, err := strconv.ParseFloat(price, 64); err != nil {
 			fmt.Println("error: price must be a valid number")
 			return
 		}
+	default:
+		fmt.Println("error: order type must be MARKET or LIMIT")
+		return
 	}
 
 	msg := builder.BuildNew(symbol, ordType, side, qty, price, a.PortfolioId)

@@ -179,7 +179,10 @@ func Repl(app *FixApp) {
 }
 
 func (a *FixApp) saveOrders() error {
-	data, _ := json.MarshalIndent(a.orders, "", "  ")
+	data, err := json.MarshalIndent(a.orders, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal orders: %w", err)
+	}
 	return os.WriteFile(orderFile, data, 0o644)
 }
 
