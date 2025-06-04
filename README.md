@@ -10,38 +10,28 @@ Under the hood, [QuickFIX/Go](https://github.com/quickfixgo/quickfix) is used to
 
 ## Prerequisites
 - **Go 1.20+** installed (https://golang.org/dl/)
-- **stunnel (v5.74+)** installed (see https://www.stunnel.org/downloads.html or install via Homebrew: `brew install stunnel`)
 - A valid **Coinbase Prime service account certificate** (PEM format) with private key
+- A CA certificate bundle (e.g., `system-roots.pem`) to validate the TLS connection
 
 ---
 
-## 1. Configure & Run stunnel
+## 1. Configure `fix.cfg` for Native TLS
 
-Coinbase Prime requires a TLS tunnel on `localhost:4198` that forwards to `fix.prime.coinbase.com:4198`.
+Coinbase Prime FIX supports **native TLS**, so no stunnel or proxy is required.
 
-A sample configuration is included in this repo at `resources/stunnel.conf`. You can use it as-is or modify it as needed.
-
-To install Prime’s TLS certificate into `/resources`:
+To generate a local CA certificate bundle from your system trust store, run:
 
 ```bash
-mkdir -p resources
-openssl s_client -showcerts -connect fix.prime.coinbase.com:4198 < /dev/null \
-  | openssl x509 -outform PEM > resources/fix-prime.coinbase.com.pem
+security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain > ~/system-roots.pem
 ```
 
-Then start stunnel:
+Edit or create the `fix.cfg` file at the project root. Replace the `SenderCompID` with your actual service account ID, and adjust the path to your CA file:
 
-```bash
-stunnel resources/stunnel.conf
 ```
-
-## 2. Configure `fix.cfg`
-
-Edit `fix.cfg` at the project root. Update the `[SESSION]` block to include your actual service account ID under `SenderCompID`. Example:
-
-```bash
-SenderCompID=YOUR_SERVICE_ACCOUNT_ID
+SSLCAFile=/Users/yourname/system-roots.pem
+SenderCompID=YOUR_SVC_ACCOUNT_ID
 ```
+This configuration enables QuickFIX/Go to connect directly over TLS without relying on external proxies like stunnel.
 
 ## 3. API credentials
 
