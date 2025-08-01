@@ -1,15 +1,16 @@
 # Go FIX Client for Coinbase Prime
 
 ## Introduction
-This repository contains a lightweight Go-based FIX client that connects to Coinbase Prime’s FIX gateway via stunnel. It provides an interactive REPL to:
+This repository contains a lightweight Go-based FIX client that connects to Coinbase Prime's FIX gateway. It provides an interactive REPL to:
 - Create new orders
-- Look up existing orders (using a local `orders.json` cache)
+- Look up existing orders (using a local `orders.json` cache)  
 - Cancel orders
+- View tabular formatted FIX messages
 
-Under the hood, [QuickFIX/Go](https://github.com/quickfixgo/quickfix) is used to handle FIX message encoding/decoding and session management, while stunnel establishes a secure TLS tunnel to Prime.
+Under the hood, [QuickFIX/Go](https://github.com/quickfixgo/quickfix) is used to handle FIX message encoding/decoding and session management.
 
 ## Prerequisites
-- **Go 1.20+** installed (https://golang.org/dl/)
+- **Go 1.23+** installed (https://golang.org/dl/)
 - A valid **Coinbase Prime service account certificate** (PEM format) with private key
 - A CA certificate bundle (e.g., `system-roots.pem`) to validate the TLS connection
 
@@ -67,14 +68,54 @@ Once the client is running, type one of the following at the `FIX>` prompt:
 ### Create a New Order
 
 ```bash
-FIX> new <symbol> <MARKET|LIMIT> <BUY|SELL> <qty> [price]
+FIX> new <symbol> <MARKET|LIMIT|VWAP> <BUY|SELL> <BASE|QUOTE> <qty> [price] [start_time] [participation_rate] [expire_time]
 ```
 
-Example (Limit Buy 0.1 BTC at $30000):
+#### Quantity Types
+- **BASE**: Quantity specified in base currency (e.g., BTC for BTC-USD)
+- **QUOTE**: Quantity specified in quote currency (e.g., USD for BTC-USD)
+
+#### Examples
+
+**Market Orders:**
+```bash
+# Buy 0.1 BTC (base currency)
+FIX> new BTC-USD MARKET BUY BASE 0.1
+
+# Buy $1000 worth of BTC (quote currency)
+FIX> new BTC-USD MARKET BUY QUOTE 1000
+```
+
+**Limit Orders:**
+```bash
+# Buy 0.1 BTC at $30000 (base currency)
+FIX> new BTC-USD LIMIT BUY BASE 0.1 30000
+
+# Buy $3000 worth of BTC at $30000 (quote currency)
+FIX> new BTC-USD LIMIT BUY QUOTE 3000 30000
+```
+
+**VWAP/TWAP Orders:**
+You can specify VWAP orders with various combinations of optional parameters:
 
 ```bash
-FIX> new BTC-USD LIMIT BUY 0.1 30000
+# Basic VWAP with just price (base currency)
+FIX> new BTC-USD VWAP BUY BASE 1.0 50000
+
+# VWAP with start time (quote currency)
+FIX> new BTC-USD VWAP BUY QUOTE 50000 50000 2025-08-01T10:00:00Z
+
+# VWAP with start time and participation rate (10%)
+FIX> new BTC-USD VWAP BUY BASE 1.0 50000 2025-08-01T10:00:00Z 0.1
+
+# VWAP with all parameters (start, participation rate, and expire time)
+FIX> new BTC-USD VWAP BUY BASE 1.0 50000 2025-08-01T10:00:00Z 0.1 2025-08-01T16:00:00Z
 ```
+
+**VWAP Parameters:**
+- `start_time`: When execution should begin (ISO 8601 format)
+- `participation_rate`: Execution aggressiveness (0.0-1.0, e.g., 0.1 = 10%)
+- `expire_time`: When the order should expire (ISO 8601 format)
 
 The order is sent, and the ExecReport (fill/cancel information) will be stored in `orders.json`.
 
@@ -107,4 +148,35 @@ This request looks up an order by `ClOrdId` and attempts to cancel it.
 FIX> list
 ```
 
-This command lists out all stored orders from `orders.json`. 
+This command lists out all stored orders from `orders.json`.
+
+---
+
+## 🎨 Enhanced Field Support
+
+### Expanded FIX Tag Dictionary
+The formatter now includes descriptions for 40+ common FIX fields including:
+
+**Core Message Fields:**
+- Tag 35 (MsgType): `"D"` → `"NEW_ORDER"`
+- Tag 39 (OrdStatus): `"2"` → `"FILLED"`
+- Tag 49 (SenderCompID), Tag 56 (TargetCompID)
+
+**Execution & Fill Data:**
+- Tag 14 (CumQty) - Cumulative quantity filled
+- Tag 31 (LastPx) - Last execution price
+- Tag 32 (LastShares) - Last execution quantity
+- Tag 8002 (FilledAmount) - Total filled amount
+- Tag 8006 (NetAvgPrice) - Net average price
+
+**Trading Information:**
+- Tag 50 (SenderSubID), Tag 60 (TransactTime)
+- Tag 79 (PortfolioID), Tag 30 (LastMkt)
+
+### Color Coding
+- **Message Type (Tag 35)** - Magenta for easy identification
+- **Order Status (Tag 39)** - Yellow highlighting
+- **Execution Fields** - Green for fill/trade data (Tags 14, 31, 32, 8002, 8006)
+- **Header/Trailer** - Cyan for structural fields (Tags 8, 9, 10)
+
+**Unknown fields are handled gracefully** - any field not in the lookup table displays as `"Tag999"` without breaking the formatter.

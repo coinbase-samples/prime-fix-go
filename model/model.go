@@ -19,12 +19,15 @@ package model
 import "github.com/quickfixgo/quickfix"
 
 type OrderInfo struct {
-	ClOrdId    string `json:"clOrdId"`
-	OrderId    string `json:"orderId"`
-	Side       string `json:"side"`
-	Symbol     string `json:"symbol"`
-	Quantity   string `json:"quantity"`
-	LimitPrice string `json:"limitPrice"`
+	ClOrdId           string `json:"clOrdId"`
+	OrderId           string `json:"orderId"`
+	Side              string `json:"side"`
+	Symbol            string `json:"symbol"`
+	Quantity          string `json:"quantity"`
+	LimitPrice        string `json:"limitPrice"`
+	StartTime         string `json:"startTime,omitempty"`
+	ExpireTime        string `json:"expireTime,omitempty"`
+	ParticipationRate string `json:"participationRate,omitempty"`
 }
 
 type FixApp struct {

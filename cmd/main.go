@@ -21,6 +21,7 @@ import (
 	"os"
 
 	"prime-fix-go/fixclient"
+	"prime-fix-go/formatter"
 	"prime-fix-go/utils"
 
 	"github.com/quickfixgo/quickfix"
@@ -44,7 +45,7 @@ func main() {
 	initiator, err := quickfix.NewInitiator(app,
 		quickfix.NewMemoryStoreFactory(),
 		settings,
-		quickfix.NewScreenLogFactory(),
+		formatter.NewTableLogFactory(),
 	)
 	if err != nil {
 		log.Fatal("initiator error:", err)

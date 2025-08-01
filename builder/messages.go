@@ -30,7 +30,7 @@ import (
 )
 
 func BuildNew(
-	symbol, ordType, side, qty, price, portfolio string,
+	symbol, ordType, side, qtyType, qty, price, portfolio string, vwapParams ...string,
 ) *quickfix.Message {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeNew))
@@ -42,13 +42,51 @@ func BuildNew(
 	m.Body.SetField(constants.TagAccount, quickfix.FIXString(portfolio))
 	m.Body.SetField(constants.TagClOrdId, quickfix.FIXString(clId))
 	m.Body.SetField(constants.TagSymbol, quickfix.FIXString(symbol))
-	m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(qty))
+
+	// Set quantity based on user preference (BASE or QUOTE)
+	if strings.EqualFold(qtyType, "BASE") {
+		m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(qty))
+	} else { // Default to QUOTE
+		m.Body.SetField(constants.TagCashOrderQty, quickfix.FIXString(qty))
+	}
 
 	if strings.EqualFold(ordType, constants.OrdTypeLimit) {
 		m.Body.SetField(constants.TagOrdType, quickfix.FIXString(constants.OrdTypeLimitFix))
 		m.Body.SetField(constants.TagTimeInForce, quickfix.FIXString(constants.TimeInForceDay))
 		m.Body.SetField(constants.TagPx, quickfix.FIXString(price))
 		m.Body.SetField(constants.TagTargetStrategy, quickfix.FIXString(constants.TargetStrategyLimit))
+	} else if strings.EqualFold(ordType, constants.OrdTypeVwap) {
+		m.Body.SetField(constants.TagOrdType, quickfix.FIXString(constants.OrdTypeVwapFix))
+		m.Body.SetField(constants.TagTimeInForce, quickfix.FIXString(constants.TimeInForceGtd))
+		m.Body.SetField(constants.TagPx, quickfix.FIXString(price))
+		m.Body.SetField(constants.TagTargetStrategy, quickfix.FIXString(constants.TargetStrategyVwap))
+
+		if len(vwapParams) > 0 && vwapParams[0] != "" {
+			effectiveTime, err := time.Parse("2006-01-02T15:04:05Z", vwapParams[0])
+			if err == nil {
+				m.Body.SetField(constants.TagStartTime, quickfix.FIXString(effectiveTime.Format(constants.FixTimeFormat)))
+			} else {
+				m.Body.SetField(constants.TagStartTime, quickfix.FIXString(vwapParams[0]))
+			}
+		}
+
+		hasParticipationRate := len(vwapParams) > 1 && vwapParams[1] != ""
+		hasExpireTime := len(vwapParams) > 2 && vwapParams[2] != ""
+
+		if hasParticipationRate {
+			m.Body.SetField(constants.TagParticipationRate, quickfix.FIXString(vwapParams[1]))
+		}
+		if hasExpireTime {
+			expireTime, err := time.Parse("2006-01-02T15:04:05Z", vwapParams[2])
+			if err == nil {
+				m.Body.SetField(constants.TagExpireTime, quickfix.FIXString(expireTime.Format(constants.FixTimeFormat)))
+			} else {
+				m.Body.SetField(constants.TagExpireTime, quickfix.FIXString(vwapParams[2]))
+			}
+		} else {
+			defaultExpire, _ := time.Parse("2006-01-02T15:04:05Z", "2025-07-26T23:59:59Z")
+			m.Body.SetField(constants.TagExpireTime, quickfix.FIXString(defaultExpire.Format(constants.FixTimeFormat)))
+		}
 	} else {
 		m.Body.SetField(constants.TagOrdType, quickfix.FIXString(constants.OrdTypeMarketFix))
 		m.Body.SetField(constants.TagTimeInForce, quickfix.FIXString(constants.TimeInForceIoc))
