@@ -149,34 +149,3 @@ FIX> list
 ```
 
 This command lists out all stored orders from `orders.json`.
-
----
-
-## 🎨 Enhanced Field Support
-
-### Expanded FIX Tag Dictionary
-The formatter now includes descriptions for 40+ common FIX fields including:
-
-**Core Message Fields:**
-- Tag 35 (MsgType): `"D"` → `"NEW_ORDER"`
-- Tag 39 (OrdStatus): `"2"` → `"FILLED"`
-- Tag 49 (SenderCompID), Tag 56 (TargetCompID)
-
-**Execution & Fill Data:**
-- Tag 14 (CumQty) - Cumulative quantity filled
-- Tag 31 (LastPx) - Last execution price
-- Tag 32 (LastShares) - Last execution quantity
-- Tag 8002 (FilledAmount) - Total filled amount
-- Tag 8006 (NetAvgPrice) - Net average price
-
-**Trading Information:**
-- Tag 50 (SenderSubID), Tag 60 (TransactTime)
-- Tag 79 (PortfolioID), Tag 30 (LastMkt)
-
-### Color Coding
-- **Message Type (Tag 35)** - Magenta for easy identification
-- **Order Status (Tag 39)** - Yellow highlighting
-- **Execution Fields** - Green for fill/trade data (Tags 14, 31, 32, 8002, 8006)
-- **Header/Trailer** - Cyan for structural fields (Tags 8, 9, 10)
-
-**Unknown fields are handled gracefully** - any field not in the lookup table displays as `"Tag999"` without breaking the formatter.
