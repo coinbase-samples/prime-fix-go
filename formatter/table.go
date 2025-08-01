@@ -32,6 +32,7 @@ type FieldInfo struct {
 }
 
 var fixFieldDescriptions = map[string]string{
+	"1":    "PortfolioID",
 	"8":    "BeginString",
 	"9":    "BodyLength",
 	"10":   "CheckSum",
@@ -60,7 +61,10 @@ var fixFieldDescriptions = map[string]string{
 	"60":   "TransactTime",
 	"79":   "PortfolioID",
 	"96":   "SecureData",
+	"98":   "EncryptMethod",
+	"108":  "HeartBtInt",
 	"126":  "ExpireTime",
+	"141":  "ResetSeqNumFlag",
 	"150":  "ExecType",
 	"151":  "LeavesQty",
 	"152":  "CashOrderQty",
@@ -233,47 +237,51 @@ func formatTable(fields []FieldInfo, direction string) string {
 
 	var sb strings.Builder
 
-	// Direction indicator
+	// Direction indicator and table structure color
 	directionColor := colorGreen
+	tableColor := colorWhite
 	arrow := "<---"
 	if direction == "OUTGOING" {
 		directionColor = colorBlue
+		tableColor = colorBlue
 		arrow = "--->"
 	} else if direction == "INCOMING" {
 		directionColor = colorYellow
+		tableColor = colorYellow
 		arrow = "<---"
 	}
 
 	sb.WriteString(fmt.Sprintf("%s%s %s%s%s\n", directionColor, arrow, colorBold, direction, colorReset))
 
 	// Top border
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxTag+2))
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxName+2))
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxValue+2))
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxDesc+2))
-	sb.WriteString("+\n")
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxTag+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxName+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxValue+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxDesc+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s\n", tableColor, colorReset))
 
 	// Header row
-	sb.WriteString(fmt.Sprintf("| %s%-*s%s | %s%-*s%s | %s%-*s%s | %s%-*s%s |\n",
-		colorBold+colorCyan, maxTag, "TAG", colorReset,
-		colorBold+colorCyan, maxName, "DESCRIPTION", colorReset,
-		colorBold+colorCyan, maxValue, "VALUE", colorReset,
-		colorBold+colorCyan, maxDesc, "VALUE DESCRIPTION", colorReset))
+	sb.WriteString(fmt.Sprintf("%s|%s %s%-*s%s %s|%s %s%-*s%s %s|%s %s%-*s%s %s|%s %s%-*s%s %s|%s\n",
+		tableColor, colorReset, colorBold+colorCyan, maxTag, "TAG", colorReset,
+		tableColor, colorReset, colorBold+colorCyan, maxName, "DESCRIPTION", colorReset,
+		tableColor, colorReset, colorBold+colorCyan, maxValue, "VALUE", colorReset,
+		tableColor, colorReset, colorBold+colorCyan, maxDesc, "VALUE DESCRIPTION", colorReset,
+		tableColor, colorReset))
 
 	// Header separator
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxTag+2))
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxName+2))
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxValue+2))
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxDesc+2))
-	sb.WriteString("+\n")
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxTag+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxName+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxValue+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxDesc+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s\n", tableColor, colorReset))
 
 	// Data rows
 	for _, field := range fields {
@@ -303,23 +311,24 @@ func formatTable(fields []FieldInfo, direction string) string {
 			desc = desc[:maxDesc-3] + "..."
 		}
 
-		sb.WriteString(fmt.Sprintf("| %s%*s%s | %-*s | %-*s | %-*s |\n",
-			tagColor, maxTag, field.Tag, colorReset,
-			maxName, name,
-			maxValue, value,
-			maxDesc, desc))
+		sb.WriteString(fmt.Sprintf("%s|%s %s%*s%s %s|%s %-*s %s|%s %-*s %s|%s %-*s %s|%s\n",
+			tableColor, colorReset, tagColor, maxTag, field.Tag, colorReset,
+			tableColor, colorReset, maxName, name,
+			tableColor, colorReset, maxValue, value,
+			tableColor, colorReset, maxDesc, desc,
+			tableColor, colorReset))
 	}
 
 	// Bottom border
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxTag+2))
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxName+2))
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxValue+2))
-	sb.WriteString("+")
-	sb.WriteString(strings.Repeat("-", maxDesc+2))
-	sb.WriteString("+\n")
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxTag+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxName+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxValue+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s", tableColor, colorReset))
+	sb.WriteString(fmt.Sprintf("%s%s%s", tableColor, strings.Repeat("-", maxDesc+2), colorReset))
+	sb.WriteString(fmt.Sprintf("%s+%s\n", tableColor, colorReset))
 
 	return sb.String()
 }

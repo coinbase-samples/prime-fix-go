@@ -17,6 +17,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -28,6 +29,8 @@ import (
 )
 
 func main() {
+	fmt.Printf("%s\n\n", utils.FullVersion())
+
 	settings, err := utils.LoadSettings("fix.cfg")
 	if err != nil {
 		log.Fatal(err)

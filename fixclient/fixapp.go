@@ -87,7 +87,7 @@ func (a *FixApp) OnLogon(sid quickfix.SessionID) {
 	if err := a.loadOrders(); err != nil {
 		log.Println("order cache load err:", err)
 	}
-	fmt.Println("Commands: new, status, cancel, list, exit")
+	fmt.Println("Commands: new, status, cancel, list, version, exit")
 }
 
 func (a *FixApp) ToAdmin(msg *quickfix.Message, _ quickfix.SessionID) {
@@ -170,6 +170,8 @@ func Repl(app *FixApp) {
 			app.handleCancel(parts)
 		case "list":
 			app.handleList()
+		case "version":
+			fmt.Println(utils.FullVersion())
 		case "exit":
 			return
 		default:
