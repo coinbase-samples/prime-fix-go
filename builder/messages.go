@@ -31,7 +31,7 @@ import (
 
 func BuildNew(
 	symbol, ordType, side, qtyType, qty, price, portfolio string, vwapParams ...string,
-) *quickfix.Message {
+) (*quickfix.Message, error) {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeNew))
 	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
@@ -84,8 +84,7 @@ func BuildNew(
 				m.Body.SetField(constants.TagExpireTime, quickfix.FIXString(vwapParams[2]))
 			}
 		} else {
-			defaultExpire, _ := time.Parse("2006-01-02T15:04:05Z", "2025-07-26T23:59:59Z")
-			m.Body.SetField(constants.TagExpireTime, quickfix.FIXString(defaultExpire.Format(constants.FixTimeFormat)))
+			return nil, fmt.Errorf("expire time is required for VWAP orders")
 		}
 	} else {
 		m.Body.SetField(constants.TagOrdType, quickfix.FIXString(constants.OrdTypeMarketFix))
@@ -99,7 +98,7 @@ func BuildNew(
 		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideSellFix))
 	}
 
-	return m
+	return m, nil
 }
 
 func BuildStatus(clId, ordId, side, symbol string) *quickfix.Message {

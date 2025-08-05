@@ -89,7 +89,11 @@ func (a *FixApp) handleNew(parts []string) {
 		vwapParams = parts[7:]
 	}
 
-	msg := builder.BuildNew(symbol, ordType, side, qtyType, qty, price, a.PortfolioId, vwapParams...)
+	msg, err := builder.BuildNew(symbol, ordType, side, qtyType, qty, price, a.PortfolioId, vwapParams...)
+	if err != nil {
+		fmt.Printf("Error building order: %v\n", err)
+		return
+	}
 	quickfix.SendToTarget(msg, a.SessionId)
 }
 
