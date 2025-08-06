@@ -25,20 +25,26 @@ import (
 )
 
 func (a *FixApp) handleNew(parts []string) {
-	if len(parts) < 5 {
+	if len(parts) < 6 {
 		fmt.Println("error: insufficient arguments")
-		fmt.Println("usage: new <symbol> <MARKET|LIMIT> <BUY|SELL> <qty> [price]")
+		fmt.Println("usage: new <symbol> <MARKET|LIMIT|VWAP> <BUY|SELL> <BASE|QUOTE> <qty> [price] [start_time] [participation_rate] [expire_time]")
 		return
 	}
 
 	symbol := parts[1]
 	ordType := strings.ToUpper(parts[2])
 	side := strings.ToUpper(parts[3])
-	qty := parts[4]
+	qtyType := strings.ToUpper(parts[4])
+	qty := parts[5]
 	var price string
 
 	if side != "BUY" && side != "SELL" {
 		fmt.Println("error: side must be BUY or SELL")
+		return
+	}
+
+	if qtyType != "BASE" && qtyType != "QUOTE" {
+		fmt.Println("error: quantity type must be BASE or QUOTE")
 		return
 	}
 
@@ -49,26 +55,45 @@ func (a *FixApp) handleNew(parts []string) {
 
 	switch ordType {
 	case "MARKET":
-		if len(parts) > 5 {
+		if len(parts) > 6 {
 			fmt.Println("error: MARKET orders should not include a price")
 			return
 		}
 	case "LIMIT":
-		if len(parts) < 6 {
+		if len(parts) < 7 {
 			fmt.Println("error: price must be specified for LIMIT orders")
 			return
 		}
-		price = parts[5]
+		price = parts[6]
+		if _, err := strconv.ParseFloat(price, 64); err != nil {
+			fmt.Println("error: price must be a valid number")
+			return
+		}
+	case "VWAP":
+		if len(parts) < 7 {
+			fmt.Println("error: price must be specified for VWAP orders")
+			return
+		}
+		price = parts[6]
 		if _, err := strconv.ParseFloat(price, 64); err != nil {
 			fmt.Println("error: price must be a valid number")
 			return
 		}
 	default:
-		fmt.Println("error: order type must be MARKET or LIMIT")
+		fmt.Println("error: order type must be MARKET, LIMIT, or VWAP")
 		return
 	}
 
-	msg := builder.BuildNew(symbol, ordType, side, qty, price, a.PortfolioId)
+	var vwapParams []string
+	if ordType == "VWAP" && len(parts) > 7 {
+		vwapParams = parts[7:]
+	}
+
+	msg, err := builder.BuildNew(symbol, ordType, side, qtyType, qty, price, a.PortfolioId, vwapParams...)
+	if err != nil {
+		fmt.Printf("Error building order: %v\n", err)
+		return
+	}
 	quickfix.SendToTarget(msg, a.SessionId)
 }
 

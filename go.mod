@@ -1,6 +1,6 @@
 module prime-fix-go
 
-go 1.23.2
+go 1.23.7
 
 require github.com/quickfixgo/quickfix v0.9.6
 
