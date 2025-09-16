@@ -30,6 +30,27 @@ type OrderInfo struct {
 	ParticipationRate string `json:"participationRate,omitempty"`
 }
 
+type QuoteRequestInfo struct {
+	QuoteReqId string `json:"quoteReqId"`
+	Account    string `json:"account"`
+	Side       string `json:"side"`
+	Symbol     string `json:"symbol"`
+	OrderQty   string `json:"orderQty"`
+	Price      string `json:"price"`
+}
+
+type QuoteInfo struct {
+	QuoteId        string `json:"quoteId"`
+	QuoteReqId     string `json:"quoteReqId"`
+	Account        string `json:"account"`
+	Symbol         string `json:"symbol"`
+	BidPx          string `json:"bidPx,omitempty"`
+	OfferPx        string `json:"offerPx,omitempty"`
+	BidSize        string `json:"bidSize,omitempty"`
+	OfferSize      string `json:"offerSize,omitempty"`
+	ValidUntilTime string `json:"validUntilTime"`
+}
+
 type FixApp struct {
 	ApiKey       string
 	ApiSecret    string

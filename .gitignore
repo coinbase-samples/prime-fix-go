@@ -1,0 +1,18 @@
+# Local configuration files
+fix.cfg
+
+# Build artifacts
+fix-client
+main
+
+# Session files
+Sessions/
+
+# Order cache files
+orders.json
+
+# IDE files
+.idea/
+
+# OS files
+.DS_Store

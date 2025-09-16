@@ -133,6 +133,69 @@ func BuildCancel(info model.OrderInfo, portfolio string) *quickfix.Message {
 	return m
 }
 
+func BuildQuoteRequest(
+	symbol, side, qtyType, qty, price, portfolio string,
+) *quickfix.Message {
+	m := quickfix.NewMessage()
+	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeQuoteReq))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
+
+	quoteReqId := fmt.Sprintf("qr-%d", time.Now().UnixNano())
+	m.Body.SetField(constants.TagQuoteReqId, quickfix.FIXString(quoteReqId))
+	m.Body.SetField(constants.TagAccount, quickfix.FIXString(portfolio))
+	m.Body.SetField(constants.TagSymbol, quickfix.FIXString(symbol))
+
+	// Set quantity based on user preference (BASE or QUOTE)
+	if strings.EqualFold(qtyType, "BASE") {
+		m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(qty))
+	} else { // Default to QUOTE
+		m.Body.SetField(constants.TagCashOrderQty, quickfix.FIXString(qty))
+	}
+
+	m.Body.SetField(constants.TagOrdType, quickfix.FIXString(constants.OrdTypeLimitFix))
+	m.Body.SetField(constants.TagPx, quickfix.FIXString(price))
+	m.Body.SetField(constants.TagTimeInForce, quickfix.FIXString(constants.TimeInForceFok))
+
+	if strings.EqualFold(side, constants.SideBuy) {
+		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideBuyFix))
+	} else {
+		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideSellFix))
+	}
+
+	return m
+}
+
+func BuildAcceptQuote(
+	quoteId, symbol, side, qty, price, portfolio string,
+) *quickfix.Message {
+	m := quickfix.NewMessage()
+	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeNew))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
+
+	clId := fmt.Sprintf("rfq-%d", time.Now().UnixNano())
+	m.Body.SetField(constants.TagAccount, quickfix.FIXString(portfolio))
+	m.Body.SetField(constants.TagClOrdId, quickfix.FIXString(clId))
+	m.Body.SetField(constants.TagSymbol, quickfix.FIXString(symbol))
+	m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(qty))
+	m.Body.SetField(constants.TagQuoteId, quickfix.FIXString(quoteId))
+	m.Body.SetField(constants.TagOrdType, quickfix.FIXString(constants.OrdTypePreviouslyQuoted))
+	m.Body.SetField(constants.TagTargetStrategy, quickfix.FIXString(constants.TargetStrategyRfq))
+	m.Body.SetField(constants.TagTimeInForce, quickfix.FIXString(constants.TimeInForceFok))
+	m.Body.SetField(constants.TagPx, quickfix.FIXString(price))
+
+	if strings.EqualFold(side, constants.SideBuy) {
+		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideBuyFix))
+	} else {
+		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideSellFix))
+	}
+
+	return m
+}
+
 func BuildLogon(
 	body *quickfix.Body,
 	ts, apiKey, apiSecret, passphrase, targetCompId, portfolioId string,

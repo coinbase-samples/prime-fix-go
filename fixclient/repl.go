@@ -154,3 +154,44 @@ func (a *FixApp) handleList() {
 			o.ClOrdId, o.OrderId, o.Side, o.Symbol, o.Quantity)
 	}
 }
+
+func (a *FixApp) handleRfq(parts []string) {
+	if len(parts) < 6 {
+		fmt.Println("error: insufficient arguments")
+		fmt.Println("usage: rfq <symbol> <BUY|SELL> <BASE|QUOTE> <qty> <price>")
+		return
+	}
+
+	symbol := parts[1]
+	side := strings.ToUpper(parts[2])
+	qtyType := strings.ToUpper(parts[3])
+	qty := parts[4]
+	price := parts[5]
+
+	if side != "BUY" && side != "SELL" {
+		fmt.Println("error: side must be BUY or SELL")
+		return
+	}
+
+	if qtyType != "BASE" && qtyType != "QUOTE" {
+		fmt.Println("error: quantity type must be BASE or QUOTE")
+		return
+	}
+
+	if _, err := strconv.ParseFloat(qty, 64); err != nil {
+		fmt.Println("error: qty must be a valid number")
+		return
+	}
+
+	if _, err := strconv.ParseFloat(price, 64); err != nil {
+		fmt.Println("error: price must be a valid number")
+		return
+	}
+
+	msg := builder.BuildQuoteRequest(symbol, side, qtyType, qty, price, a.PortfolioId)
+	err := quickfix.SendToTarget(msg, a.SessionId)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Sent RFQ for %s %s %s %s @ %s\n", side, qtyType, qty, symbol, price)
+}
