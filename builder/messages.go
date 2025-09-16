@@ -46,8 +46,10 @@ func BuildNew(
 	// Set quantity based on user preference (BASE or QUOTE)
 	if strings.EqualFold(qtyType, "BASE") {
 		m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(qty))
-	} else { // Default to QUOTE
+	} else if strings.EqualFold(qtyType, "QUOTE") {
 		m.Body.SetField(constants.TagCashOrderQty, quickfix.FIXString(qty))
+	} else {
+		return nil, fmt.Errorf("invalid quantity type: %s (must be BASE or QUOTE)", qtyType)
 	}
 
 	if strings.EqualFold(ordType, constants.OrdTypeLimit) {
@@ -135,7 +137,7 @@ func BuildCancel(info model.OrderInfo, portfolio string) *quickfix.Message {
 
 func BuildQuoteRequest(
 	symbol, side, qtyType, qty, price, portfolio string,
-) *quickfix.Message {
+) (*quickfix.Message, error) {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeQuoteReq))
 	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
@@ -150,8 +152,10 @@ func BuildQuoteRequest(
 	// Set quantity based on user preference (BASE or QUOTE)
 	if strings.EqualFold(qtyType, "BASE") {
 		m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(qty))
-	} else { // Default to QUOTE
+	} else if strings.EqualFold(qtyType, "QUOTE") {
 		m.Body.SetField(constants.TagCashOrderQty, quickfix.FIXString(qty))
+	} else {
+		return nil, fmt.Errorf("invalid quantity type: %s (must be BASE or QUOTE)", qtyType)
 	}
 
 	m.Body.SetField(constants.TagOrdType, quickfix.FIXString(constants.OrdTypeLimitFix))
@@ -164,7 +168,7 @@ func BuildQuoteRequest(
 		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideSellFix))
 	}
 
-	return m
+	return m, nil
 }
 
 func BuildAcceptQuote(

@@ -188,8 +188,12 @@ func (a *FixApp) handleRfq(parts []string) {
 		return
 	}
 
-	msg := builder.BuildQuoteRequest(symbol, side, qtyType, qty, price, a.PortfolioId)
-	err := quickfix.SendToTarget(msg, a.SessionId)
+	msg, err := builder.BuildQuoteRequest(symbol, side, qtyType, qty, price, a.PortfolioId)
+	if err != nil {
+		fmt.Printf("Error building RFQ: %v\n", err)
+		return
+	}
+	err = quickfix.SendToTarget(msg, a.SessionId)
 	if err != nil {
 		return
 	}

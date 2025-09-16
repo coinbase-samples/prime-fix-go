@@ -88,7 +88,6 @@ func (a *FixApp) OnLogon(sid quickfix.SessionID) {
 		log.Println("order cache load err:", err)
 	}
 	fmt.Println("Commands: new, status, cancel, list, rfq, version, exit")
-	fmt.Println("RFQ usage: rfq <symbol> <BUY|SELL> <BASE|QUOTE> <qty> <price>")
 }
 
 func (a *FixApp) ToAdmin(msg *quickfix.Message, _ quickfix.SessionID) {
@@ -203,20 +202,23 @@ func (a *FixApp) autoAcceptQuote(quote model.QuoteInfo) {
 	}
 
 	acceptMsg := builder.BuildAcceptQuote(quote.QuoteId, quote.Symbol, side, qty, price, a.PortfolioId)
-	quickfix.SendToTarget(acceptMsg, a.SessionId)
+	err := quickfix.SendToTarget(acceptMsg, a.SessionId)
+	if err != nil {
+		return
+	}
 	log.Printf("✓ auto-accepting quote %s: %s %s %s @ %s", quote.QuoteId, side, qty, quote.Symbol, price)
 }
 
 func (a *FixApp) handleQuoteAck(msg *quickfix.Message) {
-	quoteReqID := utils.GetString(msg, constants.TagQuoteReqId)
+	quoteReqId := utils.GetString(msg, constants.TagQuoteReqId)
 	quoteAckStatus := utils.GetString(msg, constants.TagQuoteAckStatus)
 	rejectReason := utils.GetString(msg, constants.TagQuoteRejectReason)
 	text := utils.GetString(msg, constants.TagText)
 
 	if quoteAckStatus == constants.QuoteAckStatusRejected {
-		log.Printf("✗ quote request %s rejected: reason=%s, text=%s", quoteReqID, rejectReason, text)
+		log.Printf("✗ quote request %s rejected: reason=%s, text=%s", quoteReqId, rejectReason, text)
 	} else {
-		log.Printf("? quote acknowledgment for %s: status=%s", quoteReqID, quoteAckStatus)
+		log.Printf("? quote acknowledgment for %s: status=%s", quoteReqId, quoteAckStatus)
 	}
 }
 
