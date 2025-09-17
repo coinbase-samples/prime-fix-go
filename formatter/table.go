@@ -32,7 +32,7 @@ type FieldInfo struct {
 }
 
 var fixFieldDescriptions = map[string]string{
-	"1":    "PortfolioID",
+	"1":    "PortfolioId",
 	"8":    "BeginString",
 	"9":    "BodyLength",
 	"10":   "CheckSum",
@@ -50,16 +50,16 @@ var fixFieldDescriptions = map[string]string{
 	"41":   "OrigClOrdID",
 	"44":   "Price",
 	"45":   "RefSeqNum",
-	"49":   "SenderCompID",
+	"49":   "SenderCompId",
 	"50":   "SenderSubID",
 	"52":   "SendingTime",
 	"54":   "Side",
 	"55":   "Symbol",
-	"56":   "TargetCompID",
+	"56":   "TargetCompId",
 	"58":   "Text",
 	"59":   "TimeInForce",
 	"60":   "TransactTime",
-	"79":   "PortfolioID",
+	"79":   "PortfolioId",
 	"96":   "SecureData",
 	"98":   "EncryptMethod",
 	"108":  "HeartBtInt",

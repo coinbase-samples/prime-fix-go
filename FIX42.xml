@@ -918,6 +918,7 @@
    <field name='FutSettDate2' required='N' />
    <field name='OrderQty2' required='N' />
    <field name='Currency' required='N' />
+   <field name='Account' required='N' />
   </message>
   <message name='SettlementInstructions' msgtype='T' msgcat='app'>
    <field name='SettlInstID' required='Y' />

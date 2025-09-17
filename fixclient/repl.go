@@ -89,12 +89,15 @@ func (a *FixApp) handleNew(parts []string) {
 		vwapParams = parts[7:]
 	}
 
-	msg, err := builder.BuildNew(symbol, ordType, side, qtyType, qty, price, a.PortfolioId, vwapParams...)
+	msg, err := builder.BuildNew(symbol, ordType, side, qtyType, qty, price, a.config.PortfolioId, a.config, vwapParams...)
 	if err != nil {
 		fmt.Printf("Error building order: %v\n", err)
 		return
 	}
-	quickfix.SendToTarget(msg, a.SessionId)
+	err = quickfix.SendToTarget(msg, a.SessionId)
+	if err != nil {
+		return
+	}
 }
 
 func (a *FixApp) handleStatus(parts []string) {
@@ -128,7 +131,7 @@ func (a *FixApp) handleStatus(parts []string) {
 		fmt.Println("need OrderId, Side, and Symbol (not cached)")
 		return
 	}
-	quickfix.SendToTarget(builder.BuildStatus(cl, ord, side, sym), a.SessionId)
+	_ = quickfix.SendToTarget(builder.BuildStatus(cl, ord, side, sym, a.config), a.SessionId)
 }
 
 func (a *FixApp) handleCancel(parts []string) {
@@ -141,7 +144,7 @@ func (a *FixApp) handleCancel(parts []string) {
 		fmt.Println("unknown ClOrdId (not in cache)")
 		return
 	}
-	quickfix.SendToTarget(builder.BuildCancel(info, a.PortfolioId), a.SessionId)
+	_ = quickfix.SendToTarget(builder.BuildCancel(info, a.config.PortfolioId, a.config), a.SessionId)
 }
 
 func (a *FixApp) handleList() {
@@ -153,4 +156,49 @@ func (a *FixApp) handleList() {
 		fmt.Printf("%-20s → %s (%s %s %s)\n",
 			o.ClOrdId, o.OrderId, o.Side, o.Symbol, o.Quantity)
 	}
+}
+
+func (a *FixApp) handleRfq(parts []string) {
+	if len(parts) < 6 {
+		fmt.Println("error: insufficient arguments")
+		fmt.Println("usage: rfq <symbol> <BUY|SELL> <BASE|QUOTE> <qty> <price>")
+		return
+	}
+
+	symbol := parts[1]
+	side := strings.ToUpper(parts[2])
+	qtyType := strings.ToUpper(parts[3])
+	qty := parts[4]
+	price := parts[5]
+
+	if side != "BUY" && side != "SELL" {
+		fmt.Println("error: side must be BUY or SELL")
+		return
+	}
+
+	if qtyType != "BASE" && qtyType != "QUOTE" {
+		fmt.Println("error: quantity type must be BASE or QUOTE")
+		return
+	}
+
+	if _, err := strconv.ParseFloat(qty, 64); err != nil {
+		fmt.Println("error: qty must be a valid number")
+		return
+	}
+
+	if _, err := strconv.ParseFloat(price, 64); err != nil {
+		fmt.Println("error: price must be a valid number")
+		return
+	}
+
+	msg, err := builder.BuildQuoteRequest(symbol, side, qtyType, qty, price, a.config.PortfolioId, a.config)
+	if err != nil {
+		fmt.Printf("Error building RFQ: %v\n", err)
+		return
+	}
+	err = quickfix.SendToTarget(msg, a.SessionId)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Sent RFQ for %s %s %s %s @ %s\n", side, qtyType, qty, symbol, price)
 }

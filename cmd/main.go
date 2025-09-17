@@ -19,8 +19,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
+	"prime-fix-go/constants"
 	"prime-fix-go/fixclient"
 	"prime-fix-go/formatter"
 	"prime-fix-go/utils"
@@ -36,14 +36,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	app := fixclient.NewFixApp(
-		os.Getenv("ACCESS_KEY"),
-		os.Getenv("SIGNING_KEY"),
-		os.Getenv("PASSPHRASE"),
-		os.Getenv("SVC_ACCOUNT_ID"),
-		os.Getenv("TARGET_COMP_ID"),
-		os.Getenv("PORTFOLIO_ID"),
-	)
+	config := constants.NewConfig()
+	app := fixclient.NewFixApp(config)
 
 	initiator, err := quickfix.NewInitiator(app,
 		quickfix.NewMemoryStoreFactory(),

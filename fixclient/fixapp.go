@@ -37,31 +37,17 @@ import (
 const orderFile = "orders.json"
 
 type FixApp struct {
-	ApiKey       string
-	ApiSecret    string
-	Passphrase   string
-	SenderCompId string
-	TargetCompId string
-	PortfolioId  string
-
 	SessionId quickfix.SessionID
 	orders    map[string]model.OrderInfo
-
-	mu sync.RWMutex
+	config    *constants.Config
+	mu        sync.RWMutex
 }
 
-func NewFixApp(
-	apiKey, apiSecret, passphrase,
-	senderCompId, targetCompId, portfolioId string,
-) *FixApp {
+func NewFixApp(config *constants.Config) *FixApp {
 	return &FixApp{
-		ApiKey:       apiKey,
-		ApiSecret:    apiSecret,
-		Passphrase:   passphrase,
-		SenderCompId: senderCompId,
-		TargetCompId: targetCompId,
-		PortfolioId:  portfolioId,
-		orders:       make(map[string]model.OrderInfo),
+		SessionId: quickfix.SessionID{},
+		orders:    make(map[string]model.OrderInfo),
+		config:    config,
 	}
 }
 
@@ -87,7 +73,7 @@ func (a *FixApp) OnLogon(sid quickfix.SessionID) {
 	if err := a.loadOrders(); err != nil {
 		log.Println("order cache load err:", err)
 	}
-	fmt.Println("Commands: new, status, cancel, list, version, exit")
+	fmt.Println("Commands: new, status, cancel, list, rfq, version, exit")
 }
 
 func (a *FixApp) ToAdmin(msg *quickfix.Message, _ quickfix.SessionID) {
@@ -96,18 +82,24 @@ func (a *FixApp) ToAdmin(msg *quickfix.Message, _ quickfix.SessionID) {
 		builder.BuildLogon(
 			&msg.Body,
 			ts,
-			a.ApiKey,
-			a.ApiSecret,
-			a.Passphrase,
-			a.TargetCompId,
-			a.PortfolioId,
+			a.config.AccessKey,
+			a.config.SigningKey,
+			a.config.Passphrase,
+			a.config.TargetCompId,
+			a.config.PortfolioId,
 		)
 	}
 }
 
 func (a *FixApp) FromApp(msg *quickfix.Message, _ quickfix.SessionID) quickfix.MessageRejectError {
-	if t, _ := msg.Header.GetString(constants.TagMsgType); t == "8" {
+	msgType, _ := msg.Header.GetString(constants.TagMsgType)
+	switch msgType {
+	case "8":
 		a.handleExecReport(msg)
+	case constants.MsgTypeQuote:
+		a.handleQuote(msg)
+	case constants.MsgTypeQuoteAck:
+		a.handleQuoteAck(msg)
 	}
 	return nil
 }
@@ -150,6 +142,72 @@ func (a *FixApp) handleExecReport(msg *quickfix.Message) {
 	}
 }
 
+func (a *FixApp) handleQuote(msg *quickfix.Message) {
+	quote := model.QuoteInfo{
+		QuoteId:        utils.GetString(msg, constants.TagQuoteId),
+		QuoteReqId:     utils.GetString(msg, constants.TagQuoteReqId),
+		Account:        utils.GetString(msg, constants.TagAccount),
+		Symbol:         utils.GetString(msg, constants.TagSymbol),
+		BidPx:          utils.GetString(msg, constants.TagBidPx),
+		OfferPx:        utils.GetString(msg, constants.TagOfferPx),
+		BidSize:        utils.GetString(msg, constants.TagBidSize),
+		OfferSize:      utils.GetString(msg, constants.TagOfferSize),
+		ValidUntilTime: utils.GetString(msg, constants.TagValidUntilTime),
+	}
+
+	if quote.QuoteId == "" {
+		return
+	}
+
+	log.Printf("✓ received quote %s for request %s", quote.QuoteId, quote.QuoteReqId)
+
+	if quote.BidPx != "" {
+		fmt.Printf("Quote: Bid %s @ %s (valid until %s)\n", quote.BidSize, quote.BidPx, quote.ValidUntilTime)
+	}
+	if quote.OfferPx != "" {
+		fmt.Printf("Quote: Offer %s @ %s (valid until %s)\n", quote.OfferSize, quote.OfferPx, quote.ValidUntilTime)
+	}
+
+	// Auto-accept the quote
+	a.autoAcceptQuote(quote)
+}
+
+func (a *FixApp) autoAcceptQuote(quote model.QuoteInfo) {
+	var price, qty, side string
+	if quote.BidPx != "" {
+		price = quote.BidPx
+		qty = quote.BidSize
+		side = "SELL"
+	} else if quote.OfferPx != "" {
+		price = quote.OfferPx
+		qty = quote.OfferSize
+		side = "BUY"
+	} else {
+		log.Printf("✗ cannot auto-accept quote %s: no valid bid or offer price", quote.QuoteId)
+		return
+	}
+
+	acceptMsg := builder.BuildAcceptQuote(quote.QuoteId, quote.Symbol, side, qty, price, a.config.PortfolioId, a.config)
+	err := quickfix.SendToTarget(acceptMsg, a.SessionId)
+	if err != nil {
+		return
+	}
+	log.Printf("✓ auto-accepting quote %s: %s %s %s @ %s", quote.QuoteId, side, qty, quote.Symbol, price)
+}
+
+func (a *FixApp) handleQuoteAck(msg *quickfix.Message) {
+	quoteReqId := utils.GetString(msg, constants.TagQuoteReqId)
+	quoteAckStatus := utils.GetString(msg, constants.TagQuoteAckStatus)
+	rejectReason := utils.GetString(msg, constants.TagQuoteRejectReason)
+	text := utils.GetString(msg, constants.TagText)
+
+	if quoteAckStatus == constants.QuoteAckStatusRejected {
+		log.Printf("✗ quote request %s rejected: reason=%s, text=%s", quoteReqId, rejectReason, text)
+	} else {
+		log.Printf("? quote acknowledgment for %s: status=%s", quoteReqId, quoteAckStatus)
+	}
+}
+
 // Commands: new, status, cancel, list, exit.
 func Repl(app *FixApp) {
 	reader := bufio.NewReader(os.Stdin)
@@ -170,6 +228,8 @@ func Repl(app *FixApp) {
 			app.handleCancel(parts)
 		case "list":
 			app.handleList()
+		case "rfq":
+			app.handleRfq(parts)
 		case "version":
 			fmt.Println(utils.FullVersion())
 		case "exit":

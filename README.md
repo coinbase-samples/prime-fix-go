@@ -20,18 +20,23 @@ Under the hood, [QuickFIX/Go](https://github.com/quickfixgo/quickfix) is used to
 
 Coinbase Prime FIX supports **native TLS**, so no stunnel or proxy is required.
 
+### Quick Setup
+Copy the example configuration file and rename it:
+```bash
+cp fix.cfg.example fix.cfg
+```
+
+Then edit `fix.cfg` to replace placeholder values with your actual credentials:
+- Replace `YOUR_SVC_ACCOUNT_ID` with your service account ID
+- Update the `SSLCAFile` path to point to your system's CA certificate bundle
+
+### Generating CA Certificate Bundle
 To generate a local CA certificate bundle from your system trust store, run:
 
 ```bash
 security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain > ~/system-roots.pem
 ```
 
-Edit or create the `fix.cfg` file at the project root. Replace the `SenderCompID` with your actual service account ID, and adjust the path to your CA file:
-
-```
-SSLCAFile=/Users/yourname/system-roots.pem
-SenderCompID=YOUR_SVC_ACCOUNT_ID
-```
 This configuration enables QuickFIX/Go to connect directly over TLS without relying on external proxies like stunnel.
 
 ## 3. API credentials
@@ -149,3 +154,25 @@ FIX> list
 ```
 
 This command lists out all stored orders from `orders.json`.
+
+### Request for Quote (RFQ)
+
+The client supports RFQ (Request for Quote) functionality for obtaining quotes before executing trades:
+
+```bash
+FIX> rfq <symbol> <BUY|SELL> <BASE|QUOTE> <qty> <price>
+```
+
+**Example:**
+```bash
+# Request quote to buy $15 worth of SOL-USD with limit price of $250
+FIX> rfq SOL-USD BUY QUOTE 15 250
+```
+
+#### ⚠️ **Important RFQ Warning**
+
+**The current implementation automatically accepts any RFQ quote that is received.** This is designed for demonstration purposes only. In a production environment, you would want to implement proper quote evaluation logic.
+
+By providing a required limit price, the system sets a worst-case price and helps control the potential risks associated with auto-accepting quotes.
+
+**Use caution when testing with real funds**, as the system will automatically execute trades upon receiving quotes.

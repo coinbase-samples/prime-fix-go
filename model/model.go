@@ -16,8 +16,6 @@
 
 package model
 
-import "github.com/quickfixgo/quickfix"
-
 type OrderInfo struct {
 	ClOrdId           string `json:"clOrdId"`
 	OrderId           string `json:"orderId"`
@@ -30,14 +28,23 @@ type OrderInfo struct {
 	ParticipationRate string `json:"participationRate,omitempty"`
 }
 
-type FixApp struct {
-	ApiKey       string
-	ApiSecret    string
-	Passphrase   string
-	SenderCompId string
-	TargetCompId string
-	PortfolioId  string
+type QuoteRequestInfo struct {
+	QuoteReqId string `json:"quoteReqId"`
+	Account    string `json:"account"`
+	Side       string `json:"side"`
+	Symbol     string `json:"symbol"`
+	OrderQty   string `json:"orderQty"`
+	Price      string `json:"price"`
+}
 
-	SessionId quickfix.SessionID
-	orders    map[string]OrderInfo
+type QuoteInfo struct {
+	QuoteId        string `json:"quoteId"`
+	QuoteReqId     string `json:"quoteReqId"`
+	Account        string `json:"account"`
+	Symbol         string `json:"symbol"`
+	BidPx          string `json:"bidPx,omitempty"`
+	OfferPx        string `json:"offerPx,omitempty"`
+	BidSize        string `json:"bidSize,omitempty"`
+	OfferSize      string `json:"offerSize,omitempty"`
+	ValidUntilTime string `json:"validUntilTime"`
 }

@@ -18,7 +18,6 @@ package builder
 
 import (
 	"fmt"
-	"os"
 	"prime-fix-go/utils"
 	"strings"
 	"time"
@@ -30,12 +29,12 @@ import (
 )
 
 func BuildNew(
-	symbol, ordType, side, qtyType, qty, price, portfolio string, vwapParams ...string,
+	symbol, ordType, side, qtyType, qty, price, portfolio string, config *constants.Config, vwapParams ...string,
 ) (*quickfix.Message, error) {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeNew))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
-	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
 	clId := fmt.Sprintf("%d", time.Now().UnixNano())
@@ -46,8 +45,10 @@ func BuildNew(
 	// Set quantity based on user preference (BASE or QUOTE)
 	if strings.EqualFold(qtyType, "BASE") {
 		m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(qty))
-	} else { // Default to QUOTE
+	} else if strings.EqualFold(qtyType, "QUOTE") {
 		m.Body.SetField(constants.TagCashOrderQty, quickfix.FIXString(qty))
+	} else {
+		return nil, fmt.Errorf("invalid quantity type: %s (must be BASE or QUOTE)", qtyType)
 	}
 
 	if strings.EqualFold(ordType, constants.OrdTypeLimit) {
@@ -101,11 +102,11 @@ func BuildNew(
 	return m, nil
 }
 
-func BuildStatus(clId, ordId, side, symbol string) *quickfix.Message {
+func BuildStatus(clId, ordId, side, symbol string, config *constants.Config) *quickfix.Message {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeStatus))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
-	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
 	m.Body.SetField(constants.TagClOrdId, quickfix.FIXString(clId))
@@ -115,11 +116,11 @@ func BuildStatus(clId, ordId, side, symbol string) *quickfix.Message {
 	return m
 }
 
-func BuildCancel(info model.OrderInfo, portfolio string) *quickfix.Message {
+func BuildCancel(info model.OrderInfo, portfolio string, config *constants.Config) *quickfix.Message {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeCancel))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
-	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
 	cancelClId := fmt.Sprintf("cancel-%d", time.Now().UnixNano())
@@ -130,6 +131,71 @@ func BuildCancel(info model.OrderInfo, portfolio string) *quickfix.Message {
 	m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(info.Quantity))
 	m.Body.SetField(constants.TagSide, quickfix.FIXString(info.Side))
 	m.Body.SetField(constants.TagSymbol, quickfix.FIXString(info.Symbol))
+	return m
+}
+
+func BuildQuoteRequest(
+	symbol, side, qtyType, qty, price, portfolio string, config *constants.Config,
+) (*quickfix.Message, error) {
+	m := quickfix.NewMessage()
+	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeQuoteReq))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
+	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
+
+	quoteReqId := fmt.Sprintf("qr-%d", time.Now().UnixNano())
+	m.Body.SetField(constants.TagQuoteReqId, quickfix.FIXString(quoteReqId))
+	m.Body.SetField(constants.TagAccount, quickfix.FIXString(portfolio))
+	m.Body.SetField(constants.TagSymbol, quickfix.FIXString(symbol))
+
+	// Set quantity based on user preference (BASE or QUOTE)
+	if strings.EqualFold(qtyType, "BASE") {
+		m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(qty))
+	} else if strings.EqualFold(qtyType, "QUOTE") {
+		m.Body.SetField(constants.TagCashOrderQty, quickfix.FIXString(qty))
+	} else {
+		return nil, fmt.Errorf("invalid quantity type: %s (must be BASE or QUOTE)", qtyType)
+	}
+
+	m.Body.SetField(constants.TagOrdType, quickfix.FIXString(constants.OrdTypeLimitFix))
+	m.Body.SetField(constants.TagPx, quickfix.FIXString(price))
+	m.Body.SetField(constants.TagTimeInForce, quickfix.FIXString(constants.TimeInForceFok))
+
+	if strings.EqualFold(side, constants.SideBuy) {
+		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideBuyFix))
+	} else {
+		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideSellFix))
+	}
+
+	return m, nil
+}
+
+func BuildAcceptQuote(
+	quoteId, symbol, side, qty, price, portfolio string, config *constants.Config,
+) *quickfix.Message {
+	m := quickfix.NewMessage()
+	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeNew))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
+	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
+
+	clId := fmt.Sprintf("rfq-%d", time.Now().UnixNano())
+	m.Body.SetField(constants.TagAccount, quickfix.FIXString(portfolio))
+	m.Body.SetField(constants.TagClOrdId, quickfix.FIXString(clId))
+	m.Body.SetField(constants.TagSymbol, quickfix.FIXString(symbol))
+	m.Body.SetField(constants.TagOrderQty, quickfix.FIXString(qty))
+	m.Body.SetField(constants.TagQuoteId, quickfix.FIXString(quoteId))
+	m.Body.SetField(constants.TagOrdType, quickfix.FIXString(constants.OrdTypePreviouslyQuoted))
+	m.Body.SetField(constants.TagTargetStrategy, quickfix.FIXString(constants.TargetStrategyRfq))
+	m.Body.SetField(constants.TagTimeInForce, quickfix.FIXString(constants.TimeInForceFok))
+	m.Body.SetField(constants.TagPx, quickfix.FIXString(price))
+
+	if strings.EqualFold(side, constants.SideBuy) {
+		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideBuyFix))
+	} else {
+		m.Body.SetField(constants.TagSide, quickfix.FIXString(constants.SideSellFix))
+	}
+
 	return m
 }
 
