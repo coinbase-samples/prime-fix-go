@@ -89,12 +89,15 @@ func (a *FixApp) handleNew(parts []string) {
 		vwapParams = parts[7:]
 	}
 
-	msg, err := builder.BuildNew(symbol, ordType, side, qtyType, qty, price, a.PortfolioId, vwapParams...)
+	msg, err := builder.BuildNew(symbol, ordType, side, qtyType, qty, price, a.config.PortfolioId, a.config, vwapParams...)
 	if err != nil {
 		fmt.Printf("Error building order: %v\n", err)
 		return
 	}
-	quickfix.SendToTarget(msg, a.SessionId)
+	err = quickfix.SendToTarget(msg, a.SessionId)
+	if err != nil {
+		return
+	}
 }
 
 func (a *FixApp) handleStatus(parts []string) {
@@ -128,7 +131,7 @@ func (a *FixApp) handleStatus(parts []string) {
 		fmt.Println("need OrderId, Side, and Symbol (not cached)")
 		return
 	}
-	quickfix.SendToTarget(builder.BuildStatus(cl, ord, side, sym), a.SessionId)
+	_ = quickfix.SendToTarget(builder.BuildStatus(cl, ord, side, sym, a.config), a.SessionId)
 }
 
 func (a *FixApp) handleCancel(parts []string) {
@@ -141,7 +144,7 @@ func (a *FixApp) handleCancel(parts []string) {
 		fmt.Println("unknown ClOrdId (not in cache)")
 		return
 	}
-	quickfix.SendToTarget(builder.BuildCancel(info, a.PortfolioId), a.SessionId)
+	_ = quickfix.SendToTarget(builder.BuildCancel(info, a.config.PortfolioId, a.config), a.SessionId)
 }
 
 func (a *FixApp) handleList() {
@@ -188,7 +191,7 @@ func (a *FixApp) handleRfq(parts []string) {
 		return
 	}
 
-	msg, err := builder.BuildQuoteRequest(symbol, side, qtyType, qty, price, a.PortfolioId)
+	msg, err := builder.BuildQuoteRequest(symbol, side, qtyType, qty, price, a.config.PortfolioId, a.config)
 	if err != nil {
 		fmt.Printf("Error building RFQ: %v\n", err)
 		return

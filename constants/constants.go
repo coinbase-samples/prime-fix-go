@@ -16,7 +16,30 @@
 
 package constants
 
-import "github.com/quickfixgo/quickfix"
+import (
+	"github.com/quickfixgo/quickfix"
+	"os"
+)
+
+type Config struct {
+	SenderCompId string
+	TargetCompId string
+	AccessKey    string
+	SigningKey   string
+	Passphrase   string
+	PortfolioId  string
+}
+
+func NewConfig() *Config {
+	return &Config{
+		SenderCompId: os.Getenv("SVC_ACCOUNT_ID"),
+		TargetCompId: os.Getenv("TARGET_COMP_ID"),
+		AccessKey:    os.Getenv("ACCESS_KEY"),
+		SigningKey:   os.Getenv("SIGNING_KEY"),
+		Passphrase:   os.Getenv("PASSPHRASE"),
+		PortfolioId:  os.Getenv("PORTFOLIO_ID"),
+	}
+}
 
 const (
 	MsgTypeNew      = "D" // New Order
@@ -29,7 +52,7 @@ const (
 
 	FixTimeFormat = "20060102-15:04:05.000"
 
-	DefaultTargetCompID = "COIN"
+	DefaultTargetCompId = "COIN"
 
 	OrdTypeLimit  = "LIMIT"
 	OrdTypeMarket = "MARKET"

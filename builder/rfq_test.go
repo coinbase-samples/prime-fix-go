@@ -27,7 +27,12 @@ func TestBuildQuoteRequest(t *testing.T) {
 	os.Setenv("SVC_ACCOUNT_ID", "test-sender")
 	os.Setenv("TARGET_COMP_ID", "COIN")
 
-	msg := BuildQuoteRequest("BTC-USD", "BUY", "BASE", "1.0", "50000", "test-portfolio")
+	config := constants.NewConfig()
+	msg, err := BuildQuoteRequest("BTC-USD", "BUY", "BASE", "1.0", "50000", "test-portfolio", config)
+
+	if err != nil {
+		t.Fatalf("BuildQuoteRequest returned error: %v", err)
+	}
 
 	if msg == nil {
 		t.Fatal("BuildQuoteRequest returned nil")
@@ -73,7 +78,8 @@ func TestBuildAcceptQuote(t *testing.T) {
 	os.Setenv("SVC_ACCOUNT_ID", "test-sender")
 	os.Setenv("TARGET_COMP_ID", "COIN")
 
-	msg := BuildAcceptQuote("quote123", "BTC-USD", "SELL", "1.0", "49500", "test-portfolio")
+	config := constants.NewConfig()
+	msg := BuildAcceptQuote("quote123", "BTC-USD", "SELL", "1.0", "49500", "test-portfolio", config)
 
 	if msg == nil {
 		t.Fatal("BuildAcceptQuote returned nil")

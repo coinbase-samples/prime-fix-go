@@ -18,7 +18,6 @@ package builder
 
 import (
 	"fmt"
-	"os"
 	"prime-fix-go/utils"
 	"strings"
 	"time"
@@ -30,12 +29,12 @@ import (
 )
 
 func BuildNew(
-	symbol, ordType, side, qtyType, qty, price, portfolio string, vwapParams ...string,
+	symbol, ordType, side, qtyType, qty, price, portfolio string, config *constants.Config, vwapParams ...string,
 ) (*quickfix.Message, error) {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeNew))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
-	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
 	clId := fmt.Sprintf("%d", time.Now().UnixNano())
@@ -103,11 +102,11 @@ func BuildNew(
 	return m, nil
 }
 
-func BuildStatus(clId, ordId, side, symbol string) *quickfix.Message {
+func BuildStatus(clId, ordId, side, symbol string, config *constants.Config) *quickfix.Message {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeStatus))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
-	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
 	m.Body.SetField(constants.TagClOrdId, quickfix.FIXString(clId))
@@ -117,11 +116,11 @@ func BuildStatus(clId, ordId, side, symbol string) *quickfix.Message {
 	return m
 }
 
-func BuildCancel(info model.OrderInfo, portfolio string) *quickfix.Message {
+func BuildCancel(info model.OrderInfo, portfolio string, config *constants.Config) *quickfix.Message {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeCancel))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
-	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
 	cancelClId := fmt.Sprintf("cancel-%d", time.Now().UnixNano())
@@ -136,12 +135,12 @@ func BuildCancel(info model.OrderInfo, portfolio string) *quickfix.Message {
 }
 
 func BuildQuoteRequest(
-	symbol, side, qtyType, qty, price, portfolio string,
+	symbol, side, qtyType, qty, price, portfolio string, config *constants.Config,
 ) (*quickfix.Message, error) {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeQuoteReq))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
-	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
 	quoteReqId := fmt.Sprintf("qr-%d", time.Now().UnixNano())
@@ -172,12 +171,12 @@ func BuildQuoteRequest(
 }
 
 func BuildAcceptQuote(
-	quoteId, symbol, side, qty, price, portfolio string,
+	quoteId, symbol, side, qty, price, portfolio string, config *constants.Config,
 ) *quickfix.Message {
 	m := quickfix.NewMessage()
 	m.Header.SetField(constants.TagMsgType, quickfix.FIXString(constants.MsgTypeNew))
-	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(os.Getenv("SVC_ACCOUNT_ID")))
-	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(os.Getenv("TARGET_COMP_ID")))
+	m.Header.SetField(constants.TagSenderCompId, quickfix.FIXString(config.SenderCompId))
+	m.Header.SetField(constants.TagTargetCompId, quickfix.FIXString(config.TargetCompId))
 	m.Header.SetField(constants.TagSendingTime, quickfix.FIXString(time.Now().UTC().Format(constants.FixTimeFormat)))
 
 	clId := fmt.Sprintf("rfq-%d", time.Now().UnixNano())

@@ -37,31 +37,17 @@ import (
 const orderFile = "orders.json"
 
 type FixApp struct {
-	ApiKey       string
-	ApiSecret    string
-	Passphrase   string
-	SenderCompId string
-	TargetCompId string
-	PortfolioId  string
-
 	SessionId quickfix.SessionID
 	orders    map[string]model.OrderInfo
-
-	mu sync.RWMutex
+	config    *constants.Config
+	mu        sync.RWMutex
 }
 
-func NewFixApp(
-	apiKey, apiSecret, passphrase,
-	senderCompId, targetCompId, portfolioId string,
-) *FixApp {
+func NewFixApp(config *constants.Config) *FixApp {
 	return &FixApp{
-		ApiKey:       apiKey,
-		ApiSecret:    apiSecret,
-		Passphrase:   passphrase,
-		SenderCompId: senderCompId,
-		TargetCompId: targetCompId,
-		PortfolioId:  portfolioId,
-		orders:       make(map[string]model.OrderInfo),
+		SessionId: quickfix.SessionID{},
+		orders:    make(map[string]model.OrderInfo),
+		config:    config,
 	}
 }
 
@@ -96,11 +82,11 @@ func (a *FixApp) ToAdmin(msg *quickfix.Message, _ quickfix.SessionID) {
 		builder.BuildLogon(
 			&msg.Body,
 			ts,
-			a.ApiKey,
-			a.ApiSecret,
-			a.Passphrase,
-			a.TargetCompId,
-			a.PortfolioId,
+			a.config.AccessKey,
+			a.config.SigningKey,
+			a.config.Passphrase,
+			a.config.TargetCompId,
+			a.config.PortfolioId,
 		)
 	}
 }
@@ -201,7 +187,7 @@ func (a *FixApp) autoAcceptQuote(quote model.QuoteInfo) {
 		return
 	}
 
-	acceptMsg := builder.BuildAcceptQuote(quote.QuoteId, quote.Symbol, side, qty, price, a.PortfolioId)
+	acceptMsg := builder.BuildAcceptQuote(quote.QuoteId, quote.Symbol, side, qty, price, a.config.PortfolioId, a.config)
 	err := quickfix.SendToTarget(acceptMsg, a.SessionId)
 	if err != nil {
 		return
