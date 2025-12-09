@@ -18,10 +18,12 @@ package fixclient
 
 import (
 	"fmt"
-	"github.com/quickfixgo/quickfix"
-	"prime-fix-go/builder"
 	"strconv"
 	"strings"
+
+	"github.com/quickfixgo/quickfix"
+	"prime-fix-go/builder"
+	"prime-fix-go/formatter"
 )
 
 func (a *FixApp) handleNew(parts []string) {
@@ -201,4 +203,44 @@ func (a *FixApp) handleRfq(parts []string) {
 		return
 	}
 	fmt.Printf("Sent RFQ for %s %s %s %s @ %s\n", side, qtyType, qty, symbol, price)
+}
+
+func (a *FixApp) handleCsv(parts []string) {
+	if len(parts) < 2 {
+		if formatter.IsCsvLoggingEnabled() {
+			fmt.Printf("CSV logging is ON (file: %s)\n", formatter.GetCsvFilename())
+		} else {
+			fmt.Println("CSV logging is OFF")
+		}
+		fmt.Println("usage: csv <start|stop>")
+		return
+	}
+
+	action := strings.ToLower(parts[1])
+	switch action {
+	case "start":
+		if formatter.IsCsvLoggingEnabled() {
+			fmt.Printf("CSV logging already active: %s\n", formatter.GetCsvFilename())
+			return
+		}
+		filename, err := formatter.StartCsvLogging()
+		if err != nil {
+			fmt.Printf("Error starting CSV logging: %v\n", err)
+			return
+		}
+		fmt.Printf("CSV logging started: %s\n", filename)
+	case "stop":
+		if !formatter.IsCsvLoggingEnabled() {
+			fmt.Println("CSV logging is not active")
+			return
+		}
+		filename := formatter.GetCsvFilename()
+		if err := formatter.StopCsvLogging(); err != nil {
+			fmt.Printf("Error stopping CSV logging: %v\n", err)
+			return
+		}
+		fmt.Printf("CSV logging stopped: %s\n", filename)
+	default:
+		fmt.Println("usage: csv <start|stop>")
+	}
 }

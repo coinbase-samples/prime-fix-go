@@ -48,6 +48,7 @@ func (l *TableLog) OnIncoming(msg []byte) {
 	if err := quickfix.ParseMessage(message, buffer); err == nil {
 		formatted := FormatFixMessage(message, "INCOMING")
 		fmt.Print(formatted)
+		LogMessageToCsv(message, "INCOMING")
 	} else {
 		fmt.Printf("Error parsing incoming message: %s\nRaw: %s\n", err, string(msg))
 	}
@@ -59,6 +60,7 @@ func (l *TableLog) OnOutgoing(msg []byte) {
 	if err := quickfix.ParseMessage(message, buffer); err == nil {
 		formatted := FormatFixMessage(message, "OUTGOING")
 		fmt.Print(formatted)
+		LogMessageToCsv(message, "OUTGOING")
 	} else {
 		fmt.Printf("Error parsing outgoing message: %s\nRaw: %s\n", err, string(msg))
 	}
