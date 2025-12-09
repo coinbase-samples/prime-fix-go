@@ -33,7 +33,7 @@ type FieldInfo struct {
 
 var fixFieldDescriptions = map[string]string{
 	// Standard FIX fields
-	"1":   "Account",
+	"1":   "PortfolioId",
 	"6":   "AvgPx",
 	"8":   "BeginString",
 	"9":   "BodyLength",
@@ -66,7 +66,7 @@ var fixFieldDescriptions = map[string]string{
 	"59":  "TimeInForce",
 	"60":  "TransactTime",
 	"78":  "NoAllocs",
-	"79":  "AllocAccount",
+	"79":  "PortfolioId",
 	"80":  "AllocQty",
 	"96":  "SecureData",
 	"98":  "EncryptMethod",
