@@ -176,3 +176,32 @@ FIX> rfq SOL-USD BUY QUOTE 15 250
 By providing a required limit price, the system sets a worst-case price and helps control the potential risks associated with auto-accepting quotes.
 
 **Use caution when testing with real funds**, as the system will automatically execute trades upon receiving quotes.
+
+### CSV Logging
+
+The client supports logging all FIX messages to a CSV file for analysis and record-keeping:
+
+```bash
+# Start CSV logging
+FIX> csv start
+
+# Stop CSV logging
+FIX> csv stop
+
+# Check CSV logging status
+FIX> csv
+```
+
+When started, messages are written to a timestamped file (e.g., `fix_messages_20250609_143022.csv`) in the current directory.
+
+**CSV Output Format:**
+- **Direction**: `OUTGOING` or `INCOMING`
+- **Timestamp**: RFC3339Nano format
+- **FIX Fields**: Common fields in fixed columns (ClOrdID, OrderID, Symbol, Side, OrdStatus, etc.)
+- **Other Fields**: Any additional fields not in predefined columns
+
+This feature is useful for:
+- Post-trade analysis and reconciliation
+- Debugging message flow
+- Audit trails and compliance
+- Importing FIX data into spreadsheet applications

@@ -11,6 +11,9 @@ Sessions/
 # Order cache files
 orders.json
 
+# CSV log files
+fix_messages_*.csv
+
 # IDE files
 .idea/
 
